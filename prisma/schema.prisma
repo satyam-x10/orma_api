@@ -1,0 +1,150 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Event {
+  id                      Int              @id @default(autoincrement())
+  event_hash              String           @unique
+  name                    String
+  userId                  Int
+  createdAt               DateTime         @default(now())
+  event_profile_image_url String?
+  event_banner_url        String?
+  event_date              DateTime?
+  priceId                 Int
+  User                    User             @relation(fields: [userId], references: [id])
+  Likes                   Likes[]
+  Post                    Post[]
+  Comments                Comment[]
+  RecentlyViewed          RecentlyViewed[]
+}
+
+model Event_Category {
+  id            Int        @id @default(autoincrement())
+  event_type_id Int
+  category_name String
+  score         Int        @default(0)
+  Event_Type    Event_Type @relation(fields: [event_type_id], references: [id])
+}
+
+model Event_Type {
+  id             Int              @id @default(autoincrement())
+  name           String
+  Event_Category Event_Category[]
+}
+
+model Likes {
+  post_id    Int
+  userId     Int
+  event_hash String
+  Event      Event  @relation(fields: [event_hash], references: [event_hash])
+  Post       Post   @relation(fields: [post_id], references: [id])
+  User       User   @relation(fields: [userId], references: [id])
+
+  @@unique([post_id, userId])
+}
+
+model Comment {
+  id         Int      @id @default(autoincrement())
+  content    String
+  userId     Int
+  postId     Int
+  event_hash String
+  createdAt  DateTime @default(now())
+  Event      Event    @relation(fields: [event_hash], references: [event_hash])
+  User       User     @relation(fields: [userId], references: [id])
+  Post       Post     @relation(fields: [postId], references: [id])
+}
+
+model OrmaFeed {
+  id          Int      @id @default(autoincrement())
+  timeslot    DateTime
+  post_id     Int      @unique
+  category_id Int
+  event_hash  String
+  Post        Post     @relation(fields: [post_id], references: [id])
+}
+
+model OrmaPostScore {
+  post_id Int  @unique
+  score   Int  @default(0)
+  Post    Post @relation(fields: [post_id], references: [id])
+}
+
+enum STATUS {
+  READYFORPROCESSING
+  PROCESSING
+  FAILEDUPLOAD
+  FAILEDBYNUDITY
+  COMPLETED
+}
+
+model Post {
+  id                  Int            @id @default(autoincrement())
+  upload_url          String
+  createdAt           DateTime       @default(now())
+  description         String?
+  userId              Int
+  event_hash          String
+  compressed_url      String         @default("")
+  tiny_url            String         @default("")
+  status              STATUS         @default(READYFORPROCESSING)
+  event_category      Int?
+  original_photo_date DateTime?
+  Likes               Likes[]
+  OrmaFeed            OrmaFeed[]
+  Event               Event          @relation(fields: [event_hash], references: [event_hash])
+  User                User           @relation(fields: [userId], references: [id])
+  OrmaPostScore       OrmaPostScore?
+  Comments            Comment[]
+}
+
+model User {
+  id             Int              @id @default(autoincrement())
+  name           String?
+  phone          String           @unique @default("")
+  created_at     DateTime         @default(now())
+  email          String           @default("")
+  Event          Event[]
+  Likes          Likes[]
+  Post           Post[]
+  Comments       Comment[]
+  Admin          Boolean          @default(false)
+  RecentlyViewed RecentlyViewed[]
+}
+
+model Pricing {
+  id          Int       @id @default(autoincrement())
+  guest_count Int
+  cost        String
+  Feature     Feature[]
+}
+
+model Feature {
+  id        Int     @id @default(autoincrement())
+  name      String
+  pricingId Int
+  pricing   Pricing @relation(fields: [pricingId], references: [id])
+}
+
+model Otp {
+  id         Int      @id @default(autoincrement())
+  request_id String   @unique
+  phone      String
+  code       String   @db.Char(4)
+  created_at DateTime @default(now())
+}
+
+model RecentlyViewed {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  event_hash String
+  createdAt  DateTime @default(now())
+  User       User     @relation(fields: [userId], references: [id])
+  Event      Event    @relation(fields: [event_hash], references: [event_hash])
+}
